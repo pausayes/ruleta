@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <meta name="theme-color" content="#E10600" />
+  <title>Ruleta Shell San Miguel</title>
+
+  <style>
+    :root{
+      --shell-red:#E10600;
+      --shell-red2:#B70000;
+      --shell-yellow:#FFD200;
+      --ink:#111111;
+      --muted:#5b5b5b;
+
+      --cardShadow: 0 22px 70px rgba(0,0,0,.22);
+      --ringShadow: 0 26px 80px rgba(0,0,0,.35);
+      --radius: 26px;
+
+      --pad: clamp(14px, 3.2vw, 26px);
+      --gap: clamp(10px, 2.6vw, 16px);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(900px 520px at 20% 0%, rgba(255,210,0,.42), transparent 60%),
+        radial-gradient(760px 520px at 92% 20%, rgba(225,6,0,.20), transparent 60%),
+        radial-gradient(700px 600px at 40% 90%, rgba(0,0,0,.05), transparent 55%),
+        linear-gradient(180deg, #fff6d6, #ffffff);
+      display:grid;
+      place-items:center;
+      padding: clamp(12px, 3vw, 28px);
+    }
+
+    .card{
+      width:min(860px, 100%);
+      background: rgba(255,255,255,.86);
+      border: 1px solid rgba(0,0,0,.07);
+      border-radius: var(--radius);
+      box-shadow: var(--cardShadow);
+      overflow:hidden;
+      backdrop-filter: blur(12px);
+      position:relative;
+    }
+
+    .shellBar{
+      height: 12px;
+      background: linear-gradient(90deg, var(--shell-red), var(--shell-yellow), var(--shell-red));
+    }
+
+    .top{
+      padding: var(--pad);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap: 10px;
+      text-align:center;
+    }
+
+    .logo{
+      width: clamp(170px, 34vw, 290px);
+      height:auto;
+      display:block;
+      filter: drop-shadow(0 12px 18px rgba(0,0,0,.18));
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+
+    .subtitle{
+      margin:0;
+      font-size: clamp(16px, 2.45vw, 24px);
+      font-weight: 950;
+      letter-spacing:.2px;
+      line-height:1.12;
+    }
+
+    .hint{
+      margin:0;
+      color:var(--muted);
+      font-size: clamp(12px, 1.9vw, 14px);
+    }
+
+    .game{
+      padding: 0 var(--pad) var(--pad);
+      display:grid;
+      place-items:center;
+      gap: var(--gap);
+    }
+
+    .wheelArea{
+      width:min(600px, 92vw);
+      aspect-ratio: 1 / 1;
+      position:relative;
+      display:grid;
+      place-items:center;
+    }
+
+    canvas#wheel{
+      width:100%;
+      height:100%;
+      border-radius: 50%;
+      box-shadow: var(--ringShadow);
+      background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.98), rgba(255,255,255,.35));
+    }
+
+    .pointer{
+      position:absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 22px solid transparent;
+      border-right: 22px solid transparent;
+      border-bottom: 44px solid #111;
+      filter: drop-shadow(0 14px 18px rgba(0,0,0,.34));
+      z-index: 6;
+    }
+    .pointer::after{
+      content:"";
+      position:absolute;
+      left:-12px;
+      top: 13px;
+      width: 0; height: 0;
+      border-left: 12px solid transparent;
+      border-right: 12px solid transparent;
+      border-bottom: 22px solid var(--shell-yellow);
+    }
+
+    .centerBtn{
+      position:absolute;
+      inset: 0;
+      display:grid;
+      place-items:center;
+      z-index: 5;
+      pointer-events:none;
+    }
+    .btn{
+      pointer-events:auto;
+      width: clamp(110px, 22vw, 160px);
+      height: clamp(110px, 22vw, 160px);
+      border-radius: 999px;
+      border: 8px solid rgba(255,255,255,.92);
+      background: radial-gradient(circle at 30% 30%, #fff2a8, var(--shell-yellow) 45%, #ffbf00 78%);
+      color: #111;
+      font-weight: 1000;
+      letter-spacing: 1.1px;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      box-shadow:
+        0 24px 55px rgba(0,0,0,.22),
+        inset 0 14px 22px rgba(255,255,255,.55),
+        inset 0 -14px 22px rgba(0,0,0,.10);
+      user-select:none;
+      text-transform:uppercase;
+    }
+    .btn:active{ transform: translateY(1px); }
+    .btn[disabled]{ opacity:.55; cursor:not-allowed; filter: grayscale(.25); }
+    .btn small{
+      display:block;
+      font-size: clamp(10px, 2.7vw, 12px);
+      margin-top: -2px;
+      opacity:.85;
+      letter-spacing: .4px;
+      text-transform:none;
+      font-weight: 850;
+    }
+
+    .legal{
+      text-align:center;
+      padding: 0 var(--pad) 18px;
+      color: rgba(0,0,0,.55);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    #confetti{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index: 999;
+    }
+
+    .modal{
+      position:fixed;
+      inset:0;
+      display:none;
+      place-items:center;
+      padding: 18px;
+      background: radial-gradient(800px 500px at 50% 0%, rgba(255,210,0,.18), transparent 60%),
+                  rgba(0,0,0,.45);
+      z-index: 1000;
+    }
+    .modal.show{ display:grid; }
+
+    .modalCard{
+      width: min(540px, 92vw);
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,.22);
+      background:
+        radial-gradient(600px 260px at 30% 0%, rgba(255,210,0,.22), transparent 55%),
+        rgba(255,255,255,.93);
+      box-shadow: 0 26px 90px rgba(0,0,0,.40);
+      text-align:center;
+      overflow:hidden;
+      transform: translateY(10px) scale(.98);
+      animation: popIn .28s ease-out forwards;
+      position:relative;
+    }
+    .modalCard::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(225,6,0,.08), rgba(255,210,0,.12), rgba(225,6,0,.08));
+      pointer-events:none;
+    }
+    @keyframes popIn{ to{ transform: translateY(0) scale(1); } }
+
+    .modalTop{ padding: 18px 18px 8px; position:relative; }
+    .modalBadge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-weight: 950;
+      font-size: 12px;
+      letter-spacing:.3px;
+      background: linear-gradient(90deg, var(--shell-red), var(--shell-yellow));
+      color: #111;
+      box-shadow: 0 10px 24px rgba(0,0,0,.18);
+      position:relative;
+      z-index:1;
+    }
+    .modalEmoji{
+      font-size: 58px;
+      line-height: 1;
+      margin: 12px 0 2px;
+      filter: drop-shadow(0 12px 16px rgba(0,0,0,.14));
+      position:relative; z-index:1;
+    }
+    .modalCard h2{
+      margin: 10px 0 6px;
+      font-size: clamp(20px, 5vw, 28px);
+      font-weight: 1000;
+      position:relative; z-index:1;
+    }
+    .modalText{
+      margin: 6px 0 0;
+      font-size: clamp(14px, 3.7vw, 16px);
+      color: #222;
+      font-weight: 900;
+      position:relative; z-index:1;
+    }
+    .modalBtn{
+      margin: 14px auto 10px;
+      width: calc(100% - 34px);
+      max-width: 400px;
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-weight: 1000;
+      cursor: pointer;
+      background: radial-gradient(circle at 30% 30%, #fff2a8, var(--shell-yellow), #ffbf00);
+      box-shadow: 0 16px 36px rgba(0,0,0,.20);
+      position:relative; z-index:1;
+    }
+    .modalHint{
+      margin: 0 0 14px;
+      font-size: 12px;
+      color: rgba(0,0,0,.58);
+      position:relative; z-index:1;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="confetti"></canvas>
+
+  <div class="card">
+    <div class="shellBar"></div>
+
+    <div class="top">
+      <img class="logo" src="logo.png" alt="Shell San Miguel">
+      <p class="subtitle">Girá la ruleta y descubrí tu premio</p>
+      <p class="hint" id="dailyHint">Tenés 1 giro por día en este dispositivo.</p>
+    </div>
+
+    <div class="game">
+      <div class="wheelArea">
+        <div class="pointer"></div>
+        <canvas id="wheel" width="900" height="900"></canvas>
+
+        <div class="centerBtn">
+          <button class="btn" id="spinBtn" type="button">
+            GIRAR
+            <small id="spinSub">1 intento</small>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="legal" id="lockNote">
+      1 giro por día por dispositivo. Premios sujetos a stock. Promoción válida en Shell San Miguel SRL.
+    </div>
+  </div>
+
+  <div id="winModal" class="modal" aria-hidden="true">
+    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="winTitle">
+      <div class="modalTop">
+        <div class="modalBadge">🎉 Premio</div>
+        <div id="winEmoji" class="modalEmoji">🎁</div>
+        <h2 id="winTitle">¡Felicitaciones!</h2>
+        <p id="winText" class="modalText">Tu premio es: ...</p>
+      </div>
+      <button id="closeModal" class="modalBtn" type="button">OK</button>
+      <p class="modalHint">Tocá “OK” o cualquier parte afuera para cerrar</p>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ========= PEGÁ ACÁ TU URL DEL APPS SCRIPT (Web app URL) =========
+const API_URL =
+"https://script.google.com/macros/s/AKfycbyjFruXflGqzR1brXhNnd6ZwD0aMrXO00RogGRnHyBaBIuhelKmud6A6il2mh1uYYq47A/exec";
+
+  // ========= ID por dispositivo (anónimo) =========
+  const DEVICE_KEY = "shell_device_id_v1";
+  function getDeviceId(){
+    let id = localStorage.getItem(DEVICE_KEY);
+    if(!id){
+      if (crypto && crypto.randomUUID) id = crypto.randomUUID();
+      else id = "dev_" + Math.random().toString(16).slice(2) + Date.now().toString(16);
+      localStorage.setItem(DEVICE_KEY, id);
+    }
+    return id;
+  }
+
+  // ========= UI Lock local (solo visual; el bloqueo real está en servidor) =========
+  const spinBtn   = document.getElementById('spinBtn');
+  const spinSub   = document.getElementById('spinSub');
+  const lockNote  = document.getElementById('lockNote');
+  const dailyHint = document.getElementById('dailyHint');
+
+  function setLockedUI(locked){
+    spinBtn.disabled = locked;
+    spinSub.textContent = locked ? 'Volve mañana' : '1 intento';
+    lockNote.textContent = locked
+      ? '✅ Ya usaste tu giro de hoy en este dispositivo. Volvé mañana para intentar de nuevo. Premios sujetos a stock. Promoción válida en Shell San Miguel SRL.'
+      : '1 giro por día por dispositivo. Premios sujetos a stock. Promoción válida en Shell San Miguel SRL.';
+    dailyHint.textContent = 'Tenés 1 giro por día en este dispositivo.';
+  }
+
+  // ========= Modal =========
+  const winModal   = document.getElementById('winModal');
+  const winText    = document.getElementById('winText');
+  const winEmoji   = document.getElementById('winEmoji');
+  const closeModal = document.getElementById('closeModal');
+
+  function openModalFromServer(res){
+    winEmoji.textContent = res.prizeEmoji || "🎁";
+    winText.textContent  = `Tu premio es: ${res.prizeName || "Premio"}`;
+    winModal.classList.add('show');
+    winModal.setAttribute('aria-hidden','false');
+  }
+  function closeModalFn(){
+    winModal.classList.remove('show');
+    winModal.setAttribute('aria-hidden','true');
+  }
+  closeModal.addEventListener('click', closeModalFn);
+  winModal.addEventListener('click', (e) => { if(e.target === winModal) closeModalFn(); });
+
+  // ========= Ruleta visual SOLO “?” =========
+  const segments = new Array(16).fill(0); // solo para dibujar 16 segmentos con ?
+  const palette = [
+    { fill:'#E10600' },
+    { fill:'#FFD200' },
+    { fill:'#FFFFFF' },
+    { fill:'#B70000' },
+  ];
+
+  const canvas = document.getElementById('wheel');
+  const ctx = canvas.getContext('2d');
+
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2;
+  const outerR = Math.min(W,H)*0.47;
+  const innerR = Math.min(W,H)*0.18;
+
+  function roundRect(ctx, x, y, w, h, r){
+    const rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr, y);
+    ctx.arcTo(x+w, y,   x+w, y+h, rr);
+    ctx.arcTo(x+w, y+h, x,   y+h, rr);
+    ctx.arcTo(x,   y+h, x,   y,   rr);
+    ctx.arcTo(x,   y,   x+w, y,   rr);
+    ctx.closePath();
+  }
+
+  function drawRimAndLights(){
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    ctx.beginPath();
+    ctx.arc(0,0, outerR*1.04, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(0,0,0,.16)';
+    ctx.fill();
+
+    const rimGrad = ctx.createRadialGradient(0,0, outerR*0.96, 0,0, outerR*1.02);
+    rimGrad.addColorStop(0, 'rgba(255,255,255,.45)');
+    rimGrad.addColorStop(.35, 'rgba(220,220,220,.55)');
+    rimGrad.addColorStop(.7, 'rgba(120,120,120,.55)');
+    rimGrad.addColorStop(1, 'rgba(255,255,255,.22)');
+
+    ctx.beginPath();
+    ctx.arc(0,0, outerR*1.02, 0, Math.PI*2);
+    ctx.fillStyle = rimGrad;
+    ctx.fill();
+
+    const bulbs = 28;
+    for(let i=0;i<bulbs;i++){
+      const a = (Math.PI*2)*(i/bulbs);
+      const r = outerR*0.985;
+      const x = Math.cos(a)*r;
+      const y = Math.sin(a)*r;
+
+      ctx.beginPath();
+      ctx.arc(x,y, outerR*0.018, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,210,0,.95)';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(x,y, outerR*0.028, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(225,6,0,.22)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  function drawWheel(rotationRad=0){
+    ctx.clearRect(0,0,W,H);
+
+    ctx.save();
+    const bg = ctx.createRadialGradient(cx*0.9, cy*0.75, 40, cx, cy, outerR*1.2);
+    bg.addColorStop(0, 'rgba(255,255,255,.65)');
+    bg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0,0,W,H);
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rotationRad);
+
+    const n = segments.length;
+    const step = (Math.PI*2)/n;
+
+    for(let i=0;i<n;i++){
+      const a0 = i*step;
+      const a1 = a0 + step;
+      const c = palette[i % palette.length];
+
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.arc(0,0, outerR, a0, a1);
+      ctx.closePath();
+      ctx.fillStyle = c.fill;
+      ctx.fill();
+
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = 'rgba(0,0,0,.10)';
+      ctx.stroke();
+
+      const q = "?";
+      ctx.save();
+      ctx.rotate(a0 + step/2);
+
+      const r = outerR * 0.63;
+      ctx.translate(r, 0);
+      ctx.rotate(Math.PI/2);
+
+      ctx.font = '1000 74px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      const fill = c.fill.toLowerCase();
+      let qColor = '#111';
+      if(fill === '#e10600' || fill === '#b70000') qColor = '#fff';
+
+      ctx.lineWidth = 12;
+      ctx.strokeStyle = (qColor === '#fff') ? 'rgba(0,0,0,.35)' : 'rgba(255,255,255,.70)';
+      ctx.strokeText(q, 0, 0);
+
+      ctx.fillStyle = qColor;
+      ctx.shadowColor = 'rgba(0,0,0,.18)';
+      ctx.shadowBlur = 10;
+      ctx.fillText(q, 0, 0);
+
+      ctx.restore();
+    }
+
+    ctx.restore();
+
+    drawRimAndLights();
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    ctx.beginPath();
+    ctx.arc(0,0, innerR*1.08, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(0,0,0,.18)';
+    ctx.fill();
+
+    const diskGrad = ctx.createRadialGradient(-innerR*0.3, -innerR*0.3, 10, 0,0, innerR*1.1);
+    diskGrad.addColorStop(0, 'rgba(255,255,255,.98)');
+    diskGrad.addColorStop(.6, 'rgba(255,255,255,.88)');
+    diskGrad.addColorStop(1, 'rgba(230,230,230,.80)');
+
+    ctx.beginPath();
+    ctx.arc(0,0, innerR, 0, Math.PI*2);
+    ctx.fillStyle = diskGrad;
+    ctx.fill();
+
+    ctx.lineWidth = 18;
+    ctx.strokeStyle = '#FFD200';
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(0,0, innerR*0.72, 0, Math.PI*2);
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = '#E10600';
+    ctx.stroke();
+
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = 0.14;
+    ctx.translate(cx, cy);
+    ctx.rotate(-0.55);
+    roundRect(ctx, -outerR*0.68, -outerR*0.28, outerR*1.36, outerR*0.18, 60);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  drawWheel(0);
+
+  // ========= Confetti =========
+  const conf = document.getElementById('confetti');
+  const cctx = conf.getContext('2d');
+  let confettiPieces = [];
+  let confettiActive = false;
+
+  function resizeConfetti(){
+    conf.width = window.innerWidth * devicePixelRatio;
+    conf.height = window.innerHeight * devicePixelRatio;
+  }
+  window.addEventListener('resize', resizeConfetti);
+  resizeConfetti();
+
+  function burstConfetti(){
+    resizeConfetti();
+    confettiPieces = [];
+    const colors = ['#E10600','#FFD200','#FFFFFF','#111111','#FF6A00'];
+    const count = 220;
+
+    for(let i=0;i<count;i++){
+      confettiPieces.push({
+        x: (Math.random() * conf.width),
+        y: -20 * devicePixelRatio,
+        vx: (Math.random()*2 - 1) * 6 * devicePixelRatio,
+        vy: (Math.random()*0.6 + 0.9) * 9 * devicePixelRatio,
+        w: (Math.random()*6 + 6) * devicePixelRatio,
+        h: (Math.random()*10 + 8) * devicePixelRatio,
+        rot: Math.random()*Math.PI*2,
+        vr: (Math.random()*0.2 - 0.1),
+        color: colors[Math.floor(Math.random()*colors.length)],
+        life: 0,
+        ttl: (Math.random()*55 + 95)
+      });
+    }
+    confettiActive = true;
+    requestAnimationFrame(tickConfetti);
+  }
+
+  function tickConfetti(){
+    if(!confettiActive) return;
+    cctx.clearRect(0,0,conf.width,conf.height);
+
+    let alive = 0;
+    for(const p of confettiPieces){
+      p.life += 1;
+      if(p.life < p.ttl) alive++;
+
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.25 * devicePixelRatio;
+      p.rot += p.vr;
+
+      cctx.save();
+      cctx.translate(p.x, p.y);
+      cctx.rotate(p.rot);
+      cctx.fillStyle = p.color;
+      cctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+      cctx.restore();
+    }
+
+    if(alive > 0) requestAnimationFrame(tickConfetti);
+    else {
+      confettiActive = false;
+      cctx.clearRect(0,0,conf.width,conf.height);
+    }
+  }
+
+  // ========= JSONP helper (sin CORS) =========
+  function jsonp(url){
+    return new Promise((resolve, reject) => {
+      const cbName = "__cb_" + Math.random().toString(16).slice(2);
+      window[cbName] = (data) => {
+        cleanup();
+        resolve(data);
+      };
+
+      const script = document.createElement("script");
+      script.src = url + (url.includes("?") ? "&" : "?") + "callback=" + cbName + "&_ts=" + Date.now();
+      script.onerror = () => { cleanup(); reject(new Error("jsonp_failed")); };
+
+      function cleanup(){
+        try { delete window[cbName]; } catch(_) { window[cbName] = undefined; }
+        if (script && script.parentNode) script.parentNode.removeChild(script);
+      }
+
+      document.head.appendChild(script);
+    });
+  }
+
+  // ========= Spin anim =========
+  let spinning = false;
+  let rot = 0;
+
+  function easeOutCubic(t){ return 1 - Math.pow(1-t, 3); }
+
+  async function spin(){
+    if(spinning) return;
+    if(!API_URL || API_URL.includes("PEGAR_ACA")) {
+      alert("Pegá tu URL del Apps Script en API_URL (en el código).");
+      return;
+    }
+
+    spinning = true;
+    spinBtn.disabled = true;
+
+    const deviceId = getDeviceId();
+
+    // 1) Pedimos al servidor el premio (global + bloqueo diario)
+    let res;
+    try{
+      const sep = API_URL.includes("?") ? "&" : "?";
+      const url = `${API_URL}${sep}deviceId=${encodeURIComponent(deviceId)}`;
+
+      res = await jsonp(url);
+    } catch(e){
+      spinning = false;
+      spinBtn.disabled = false;
+      alert("Error conectando al servidor. Revisá la URL del Apps Script.");
+      return;
+    }
+
+    if(!res || !res.ok){
+      spinning = false;
+      spinBtn.disabled = false;
+      alert("Respuesta inválida del servidor.");
+      return;
+    }
+
+    if(res.locked){
+      // Ya jugó hoy -> mostrar modal igual, y dejamos UI bloqueada
+      setLockedUI(true);
+      burstConfetti();
+      openModalFromServer(res);
+      spinning = false;
+      return;
+    }
+
+    // 2) Animamos giro (estético). Como la ruleta muestra "?", no necesita coincidir con premio.
+    const spins = 5 + Math.random()*2; // 5–7 vueltas
+    const extra = Math.random() * Math.PI*2;
+    const start = rot;
+    const target = rot + spins*Math.PI*2 + extra;
+    const dur = 4300 + Math.random()*700;
+    const t0 = performance.now();
+
+    function frame(t){
+      const p = Math.min(1, (t - t0)/dur);
+      const e = easeOutCubic(p);
+      rot = start + (target - start)*e;
+      drawWheel(rot);
+
+      if(p < 1){
+        requestAnimationFrame(frame);
+      } else {
+        // 3) Emoción final
+        setLockedUI(true);
+        burstConfetti();
+        openModalFromServer(res);
+        spinning = false;
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  spinBtn.addEventListener('click', spin);
+
+  // Al cargar: no sabemos aún si está locked hasta que intente girar,
+  // pero dejamos el mensaje igual.
+  setLockedUI(false);
+})();
+</script>
+</body>
+</html>
